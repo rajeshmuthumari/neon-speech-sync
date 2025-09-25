@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, Upload, Play, Pause, Square, AudioWaveform, Brain, Activity } from "lucide-react";
+import { Mic, Upload, Play, Pause, Square, AudioWaveform, Brain, Activity, Video } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { AudioUploader } from "@/components/AudioUploader";
+import { VideoUploader } from "@/components/VideoUploader";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { RecentAnalyses } from "@/components/RecentAnalyses";
 
@@ -19,7 +21,7 @@ export default function Dashboard() {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Simulate analysis progress
+    // Simulate analysis progress for audio
     const interval = setInterval(() => {
       setAnalysisProgress(prev => {
         if (prev >= 100) {
@@ -51,6 +53,63 @@ export default function Dashboard() {
         return prev + 2;
       });
     }, 100);
+  };
+
+  const handleVideoAnalysis = async (videoId: string) => {
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+
+    try {
+      // Start the analysis process
+      const response = await supabase.functions.invoke('analyze-speech', {
+        body: { video_id: videoId }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      // Poll for analysis completion
+      const checkProgress = setInterval(async () => {
+        const { data: analysisData } = await supabase
+          .from('analysis_results')
+          .select('*')
+          .eq('video_id', videoId)
+          .single();
+
+        if (analysisData && analysisData.processing_status === 'completed') {
+          clearInterval(checkProgress);
+          setIsAnalyzing(false);
+          setAnalysisProgress(100);
+          
+          // Convert to expected format
+          setCurrentAnalysis({
+            id: analysisData.id,
+            timestamp: analysisData.created_at,
+            duration: "Analysis completed",
+            sentiment: analysisData.overall_sentiment,
+            confidence: Math.round(analysisData.sentiment_confidence * 100),
+            emotions: analysisData.emotions,
+            keywords: analysisData.key_themes || [],
+            transcription: analysisData.transcription,
+            insights: [
+              `Empathy score: ${analysisData.empathy_score}/100`,
+              `Inclusive phrases: ${analysisData.inclusive_phrases}`,
+              `Language detected: ${analysisData.detected_language}`
+            ],
+            empathy_score: analysisData.empathy_score,
+            topics: analysisData.topics
+          });
+        } else {
+          setAnalysisProgress(prev => Math.min(prev + 5, 95));
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Analysis error:', error);
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+    }
   };
 
   return (
@@ -106,26 +165,34 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="record" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="record" className="flex items-center gap-2">
-                    <Mic className="w-4 h-4" />
-                    Record Audio
-                  </TabsTrigger>
-                  <TabsTrigger value="upload" className="flex items-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    Upload File
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="record" className="mt-4">
-                  <AudioRecorder onAnalyze={handleStartAnalysis} />
-                </TabsContent>
-                
-                <TabsContent value="upload" className="mt-4">
-                  <AudioUploader onAnalyze={handleStartAnalysis} />
-                </TabsContent>
-              </Tabs>
+            <Tabs defaultValue="video" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="video" className="flex items-center gap-2">
+                  <Video className="w-4 h-4" />
+                  Video Analysis
+                </TabsTrigger>
+                <TabsTrigger value="record" className="flex items-center gap-2">
+                  <Mic className="w-4 h-4" />
+                  Record Audio
+                </TabsTrigger>
+                <TabsTrigger value="upload" className="flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  Upload Audio
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="video" className="mt-4">
+                <VideoUploader onAnalyze={handleVideoAnalysis} />
+              </TabsContent>
+              
+              <TabsContent value="record" className="mt-4">
+                <AudioRecorder onAnalyze={handleStartAnalysis} />
+              </TabsContent>
+              
+              <TabsContent value="upload" className="mt-4">
+                <AudioUploader onAnalyze={handleStartAnalysis} />
+              </TabsContent>
+            </Tabs>
             </CardContent>
           </Card>
 
