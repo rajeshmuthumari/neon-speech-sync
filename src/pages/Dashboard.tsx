@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, Upload, Play, Pause, Square, AudioWaveform, Brain, Activity, Video } from "lucide-react";
+import { Mic, Upload, Play, Pause, Square, AudioWaveform, Brain, Activity, Video, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { AudioUploader } from "@/components/AudioUploader";
 import { VideoUploader } from "@/components/VideoUploader";
@@ -13,9 +15,37 @@ import { AnalysisResults } from "@/components/AnalysisResults";
 import { RecentAnalyses } from "@/components/RecentAnalyses";
 
 export default function Dashboard() {
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [currentAnalysis, setCurrentAnalysis] = useState(null);
+
+  useEffect(() => {
+    // Redirect unauthenticated users to auth page
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  // Show loading state while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-speech-primary"></div>
+      </div>
+    );
+  }
+
+  // Don't render content if user is not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
 
   const handleStartAnalysis = async (audioData: Blob | File) => {
     setIsAnalyzing(true);
@@ -122,11 +152,18 @@ export default function Dashboard() {
             Advanced speech analysis powered by artificial intelligence
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <Badge variant="secondary" className="glass">
             <Activity className="w-4 h-4 mr-1" />
             Live Analysis
           </Badge>
+          <span className="text-sm text-muted-foreground">
+            {user.email}
+          </span>
+          <Button variant="outline" size="sm" onClick={handleSignOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
       </div>
 
