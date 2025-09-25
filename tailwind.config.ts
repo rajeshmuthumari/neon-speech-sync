@@ -57,6 +57,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        speech: {
+          primary: "hsl(var(--speech-primary))",
+          secondary: "hsl(var(--speech-secondary))",
+          accent: "hsl(var(--speech-accent))",
+          success: "hsl(var(--speech-success))",
+          warning: "hsl(var(--speech-warning))",
+          error: "hsl(var(--speech-error))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
