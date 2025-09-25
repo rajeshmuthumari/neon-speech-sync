@@ -14,7 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_results: {
+        Row: {
+          body_language: Json | null
+          confidence_score: number | null
+          created_at: string
+          detected_language: string | null
+          ego_centric_phrases: number | null
+          emotions: Json | null
+          empathy_score: number | null
+          eye_contact_score: number | null
+          facial_emotions: Json | null
+          id: string
+          inclusive_phrases: number | null
+          key_themes: string[] | null
+          overall_sentiment: string | null
+          processing_error: string | null
+          processing_status: string | null
+          sentiment_confidence: number | null
+          topics: Json | null
+          transcription: string | null
+          updated_at: string
+          user_id: string | null
+          video_id: string
+        }
+        Insert: {
+          body_language?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          detected_language?: string | null
+          ego_centric_phrases?: number | null
+          emotions?: Json | null
+          empathy_score?: number | null
+          eye_contact_score?: number | null
+          facial_emotions?: Json | null
+          id?: string
+          inclusive_phrases?: number | null
+          key_themes?: string[] | null
+          overall_sentiment?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          sentiment_confidence?: number | null
+          topics?: Json | null
+          transcription?: string | null
+          updated_at?: string
+          user_id?: string | null
+          video_id: string
+        }
+        Update: {
+          body_language?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          detected_language?: string | null
+          ego_centric_phrases?: number | null
+          emotions?: Json | null
+          empathy_score?: number | null
+          eye_contact_score?: number | null
+          facial_emotions?: Json | null
+          id?: string
+          inclusive_phrases?: number | null
+          key_themes?: string[] | null
+          overall_sentiment?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          sentiment_confidence?: number | null
+          topics?: Json | null
+          transcription?: string | null
+          updated_at?: string
+          user_id?: string | null
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_results_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timeline_analysis: {
+        Row: {
+          analysis_id: string
+          body_gesture: string | null
+          confidence_level: number | null
+          created_at: string
+          emotion: string | null
+          facial_expression: string | null
+          id: string
+          sentiment: string | null
+          text_segment: string | null
+          timestamp_seconds: number
+        }
+        Insert: {
+          analysis_id: string
+          body_gesture?: string | null
+          confidence_level?: number | null
+          created_at?: string
+          emotion?: string | null
+          facial_expression?: string | null
+          id?: string
+          sentiment?: string | null
+          text_segment?: string | null
+          timestamp_seconds: number
+        }
+        Update: {
+          analysis_id?: string
+          body_gesture?: string | null
+          confidence_level?: number | null
+          created_at?: string
+          emotion?: string | null
+          facial_expression?: string | null
+          id?: string
+          sentiment?: string | null
+          text_segment?: string | null
+          timestamp_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_analysis_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          title: string
+          updated_at: string
+          upload_status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_path: string
+          file_size: number
+          id?: string
+          mime_type: string
+          title: string
+          updated_at?: string
+          upload_status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          title?: string
+          updated_at?: string
+          upload_status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
