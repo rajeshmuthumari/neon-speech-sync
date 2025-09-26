@@ -4,9 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Brain, FileText, TrendingUp, Heart } from "lucide-react";
+import { Clock, Brain, FileText, TrendingUp, Heart, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface AnalysisHistoryItem {
   id: string;
@@ -22,13 +23,14 @@ interface AnalysisHistoryItem {
 }
 
 interface AnalysisHistoryProps {
-  onSelectAnalysis: (analysis: any) => void;
+  onSelectAnalysis?: (analysis: any) => void;
 }
 
 export function AnalysisHistory({ onSelectAnalysis }: AnalysisHistoryProps) {
   const [analyses, setAnalyses] = useState<AnalysisHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAnalysisHistory();
@@ -122,7 +124,13 @@ export function AnalysisHistory({ onSelectAnalysis }: AnalysisHistoryProps) {
               <div
                 key={analysis.id}
                 className="p-4 rounded-lg border bg-card/50 hover:bg-card/70 transition-colors cursor-pointer"
-                onClick={() => onSelectAnalysis(analysis)}
+                onClick={() => {
+                  if (onSelectAnalysis) {
+                    onSelectAnalysis(analysis);
+                  } else {
+                    navigate(`/analysis/${analysis.id}`);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -131,9 +139,14 @@ export function AnalysisHistory({ onSelectAnalysis }: AnalysisHistoryProps) {
                       {formatDate(analysis.created_at)}
                     </span>
                   </div>
-                  <Badge variant={analysis.processing_status === 'completed' ? 'default' : 'secondary'}>
-                    {analysis.processing_status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={analysis.processing_status === 'completed' ? 'default' : 'secondary'}>
+                      {analysis.processing_status}
+                    </Badge>
+                    {!onSelectAnalysis && (
+                      <ExternalLink className="w-3 h-3 text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
 
                 {/* Transcription Preview */}
