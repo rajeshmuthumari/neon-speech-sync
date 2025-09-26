@@ -3,11 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Brain, Clock, Target, Download, Share } from "lucide-react";
+import { ArrowLeft, Brain, Clock, Target, Download, Share, Copy, Link } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 export default function DetailedAnalysis() {
   const { id } = useParams();
@@ -64,20 +67,94 @@ export default function DetailedAnalysis() {
     }
   };
 
-  const handleDownloadReport = () => {
-    // TODO: Implement PDF report generation
-    toast({
-      title: "Feature coming soon",
-      description: "PDF report download will be available soon.",
-    });
+  const handleDownloadReport = async () => {
+    try {
+      // Create PDF from the analysis content
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      // Add header
+      pdf.setFontSize(20);
+      pdf.text('Political Speech Analysis Report', 20, 30);
+      
+      // Add analysis date
+      pdf.setFontSize(12);
+      pdf.text(`Analysis Date: ${formatDate(analysis.created_at)}`, 20, 45);
+      
+      // Add basic analysis data
+      let yPos = 60;
+      
+      if (analysis.overall_sentiment) {
+        pdf.text(`Overall Sentiment: ${analysis.overall_sentiment}`, 20, yPos);
+        yPos += 10;
+      }
+      
+      if (analysis.sentiment_score) {
+        pdf.text(`Sentiment Score: ${(analysis.sentiment_score * 100).toFixed(1)}%`, 20, yPos);
+        yPos += 10;
+      }
+      
+      if (analysis.empathy_score) {
+        pdf.text(`Empathy Score: ${analysis.empathy_score}/10`, 20, yPos);
+        yPos += 10;
+      }
+      
+      if (analysis.political_positioning) {
+        pdf.text(`Political Positioning: ${analysis.political_positioning}`, 20, yPos);
+        yPos += 10;
+      }
+      
+      if (analysis.key_themes && analysis.key_themes.length > 0) {
+        yPos += 10;
+        pdf.text('Key Themes:', 20, yPos);
+        yPos += 10;
+        analysis.key_themes.forEach((theme: string) => {
+          pdf.text(`• ${theme}`, 25, yPos);
+          yPos += 8;
+        });
+      }
+      
+      if (analysis.transcription) {
+        yPos += 10;
+        pdf.text('Transcription:', 20, yPos);
+        yPos += 10;
+        const transcriptLines = pdf.splitTextToSize(analysis.transcription, 170);
+        pdf.text(transcriptLines, 20, yPos);
+      }
+      
+      // Save the PDF
+      pdf.save(`speech-analysis-${analysis.id}.pdf`);
+      
+      toast({
+        title: "Report downloaded",
+        description: "Your analysis report has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Download failed",
+        description: "There was an error generating the PDF report.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleShareAnalysis = () => {
-    // TODO: Implement sharing functionality
-    toast({
-      title: "Feature coming soon",
-      description: "Analysis sharing will be available soon.",
-    });
+  const handleShareAnalysis = async () => {
+    const shareUrl = `${window.location.origin}/analysis/${analysis.id}`;
+    
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copied",
+        description: "Analysis link has been copied to your clipboard.",
+      });
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast({
+        title: "Copy failed",
+        description: "Unable to copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -157,10 +234,35 @@ export default function DetailedAnalysis() {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={handleShareAnalysis}>
-              <Share className="w-4 h-4 mr-2" />
-              Share
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Share className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Share Analysis</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="grid flex-1 gap-2">
+                      <label htmlFor="link" className="sr-only">Link</label>
+                      <input
+                        id="link"
+                        defaultValue={`${window.location.origin}/analysis/${analysis.id}`}
+                        readOnly
+                        className="w-full px-3 py-2 text-sm border rounded-md bg-background"
+                      />
+                    </div>
+                    <Button type="button" size="sm" className="px-3" onClick={handleShareAnalysis}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button variant="outline" size="sm" onClick={handleDownloadReport}>
               <Download className="w-4 h-4 mr-2" />
               Download Report
