@@ -63,11 +63,13 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
     setUploadProgress(0);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (!user) {
+      if (authError || !user) {
         throw new Error('Please log in to upload videos');
       }
+
+      console.log('Authenticated user:', user.email);
 
       // Create unique filename with sanitized name
       const timestamp = Date.now();

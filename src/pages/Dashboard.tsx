@@ -29,8 +29,13 @@ export default function Dashboard() {
   }, [user, loading, navigate]);
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate("/auth");
+    try {
+      await signOut();
+      // Only navigate after successful signout
+      navigate("/auth");
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   // Show loading state while checking auth

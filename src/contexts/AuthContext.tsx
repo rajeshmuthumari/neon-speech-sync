@@ -69,10 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Prevent multiple logout attempts
+    if (!session) {
+      console.log('Already signed out');
+      return;
+    }
+    
     try {
+      console.log('Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Error signing out:', error);
+        // Don't throw error for session_not_found - user is already logged out
+        if (!error.message.includes('session_not_found')) {
+          throw error;
+        }
       }
     } catch (error) {
       console.error('Sign out error:', error);
