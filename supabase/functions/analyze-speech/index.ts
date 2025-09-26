@@ -53,17 +53,36 @@ serve(async (req) => {
       throw new Error('Failed to download video file');
     }
 
-    console.log('Video downloaded, extracting audio...');
+    console.log('Video downloaded, processing for transcription...');
 
-    // Convert video to audio using Web APIs (simplified approach)
-    // In production, you'd use FFmpeg or similar for better audio extraction
-    const audioBlob = fileData; // Simplified - in reality, extract audio from video
+    // Check file size (Whisper has a 25MB limit)
+    const maxFileSize = 25 * 1024 * 1024; // 25MB
+    if (fileData.size > maxFileSize) {
+      throw new Error(`File too large: ${Math.round(fileData.size / 1024 / 1024)}MB. Maximum allowed is 25MB.`);
+    }
 
-    // Convert to proper format for Whisper
+    console.log(`Processing file: ${video.file_path}, Size: ${Math.round(fileData.size / 1024 / 1024)}MB`);
+
+    // Prepare the file for Whisper API
+    // Whisper can handle many formats including mp4, webm, etc.
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.mp3');
+    
+    // Determine the file type from the video details
+    const fileExtension = video.file_path.split('.').pop()?.toLowerCase() || 'mp4';
+    const mimeType = video.mime_type || `video/${fileExtension}`;
+    
+    console.log(`File type: ${fileExtension}, MIME: ${mimeType}`);
+    
+    // Create a blob with the correct MIME type
+    const mediaBlob = new Blob([fileData], { type: mimeType });
+    
+    // Use the original filename for better processing
+    const fileName = `media.${fileExtension}`;
+    formData.append('file', mediaBlob, fileName);
     formData.append('model', 'whisper-1');
-    formData.append('language', 'hi'); // Hindi by default, can be auto-detected
+    
+    // Remove language parameter to let Whisper auto-detect
+    // This prevents issues with incorrect language detection
 
     console.log('Sending to OpenAI Whisper...');
 
@@ -77,9 +96,24 @@ serve(async (req) => {
     });
 
     if (!whisperResponse.ok) {
-      const error = await whisperResponse.text();
-      console.error('Whisper API error:', error);
-      throw new Error('Failed to transcribe audio');
+      const errorText = await whisperResponse.text();
+      console.error('Whisper API error details:', {
+        status: whisperResponse.status,
+        statusText: whisperResponse.statusText,
+        error: errorText,
+        fileSize: Math.round(fileData.size / 1024 / 1024) + 'MB',
+        fileType: fileExtension,
+        mimeType: mimeType
+      });
+      
+      // Provide more specific error messages
+      if (whisperResponse.status === 413) {
+        throw new Error('File too large for Whisper API (max 25MB)');
+      } else if (whisperResponse.status === 400) {
+        throw new Error('Invalid file format or corrupted file');
+      } else {
+        throw new Error(`Whisper API failed: ${whisperResponse.status} - ${errorText}`);
+      }
     }
 
     const whisperResult = await whisperResponse.json();
