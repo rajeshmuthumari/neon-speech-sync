@@ -12,7 +12,7 @@ import { AudioRecorder } from "@/components/AudioRecorder";
 import { AudioUploader } from "@/components/AudioUploader";
 import { VideoUploader } from "@/components/VideoUploader";
 import { AnalysisResults } from "@/components/AnalysisResults";
-import { RecentAnalyses } from "@/components/RecentAnalyses";
+import { AnalysisHistory } from "@/components/AnalysisHistory";
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
@@ -112,24 +112,8 @@ export default function Dashboard() {
           setIsAnalyzing(false);
           setAnalysisProgress(100);
           
-          // Convert to expected format
-          setCurrentAnalysis({
-            id: analysisData.id,
-            timestamp: analysisData.created_at,
-            duration: "Analysis completed",
-            sentiment: analysisData.overall_sentiment,
-            confidence: Math.round(analysisData.sentiment_confidence * 100),
-            emotions: analysisData.emotions,
-            keywords: analysisData.key_themes || [],
-            transcription: analysisData.transcription,
-            insights: [
-              `Empathy score: ${analysisData.empathy_score}/100`,
-              `Inclusive phrases: ${analysisData.inclusive_phrases}`,
-              `Language detected: ${analysisData.detected_language}`
-            ],
-            empathy_score: analysisData.empathy_score,
-            topics: analysisData.topics
-          });
+          // Use the full analysis data directly for enhanced features
+          setCurrentAnalysis(analysisData);
         } else {
           setAnalysisProgress(prev => Math.min(prev + 5, 95));
         }
@@ -262,8 +246,8 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Recent Analyses */}
-          <RecentAnalyses />
+          {/* Analysis History */}
+          <AnalysisHistory onSelectAnalysis={setCurrentAnalysis} />
         </div>
       </div>
     </div>

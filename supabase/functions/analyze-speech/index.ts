@@ -231,12 +231,12 @@ Respond in valid JSON format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are an expert political speech analyst. Always respond with valid JSON.' },
+          { role: 'system', content: 'You are an expert political speech analyst. Always respond with valid JSON only, no additional text.' },
           { role: 'user', content: analysisPrompt }
         ],
-        temperature: 0.3,
+        max_tokens: 2000,
       }),
     });
 
@@ -249,15 +249,32 @@ Respond in valid JSON format:
     const gptResult = await gptResponse.json();
     const analysisText = gptResult.choices[0].message.content;
     
+    console.log('Raw GPT response:', analysisText);
+    
     let analysis;
     try {
-      analysis = JSON.parse(analysisText);
+      // Clean the response to ensure it's valid JSON
+      const cleanedText = analysisText.trim().replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      analysis = JSON.parse(cleanedText);
+      console.log('Parsed analysis:', JSON.stringify(analysis, null, 2));
     } catch (parseError) {
       console.error('Failed to parse GPT response:', analysisText);
+      console.error('Parse error:', parseError);
       throw new Error('Failed to parse analysis results');
     }
 
     console.log('Analysis completed, saving results...');
+    console.log('Data to insert:', {
+      video_id: video_id,
+      user_id: video.user_id,
+      transcription: transcription.substring(0, 100) + '...',
+      overall_sentiment: analysis.overall_sentiment,
+      sentiment_score: analysis.sentiment_score,
+      emotional_profile: analysis.emotional_profile,
+      rhetorical_styles: analysis.rhetorical_styles,
+      urgency_level: analysis.urgency_level,
+      political_positioning: analysis.political_positioning
+    });
 
     // Save analysis results to database
     const { data: analysisResult, error: analysisError } = await supabase
@@ -270,12 +287,12 @@ Respond in valid JSON format:
         overall_sentiment: analysis.overall_sentiment,
         sentiment_score: analysis.sentiment_score,
         sentiment_confidence: analysis.sentiment_confidence,
-        emotions: analysis.emotions || analysis.emotional_profile?.emotions,
+        emotions: analysis.emotions || analysis.emotional_profile,
         emotional_profile: analysis.emotional_profile,
         empathy_score: analysis.empathy_score,
         authenticity_score: analysis.authenticity_score,
-        inclusive_phrases: analysis.inclusive_phrases,
-        ego_centric_phrases: analysis.ego_centric_phrases,
+        inclusive_phrases: analysis.inclusive_phrases || 0,
+        ego_centric_phrases: analysis.ego_centric_phrases || 0,
         rhetorical_styles: analysis.rhetorical_styles,
         urgency_level: analysis.urgency_level,
         topics: analysis.topics,
