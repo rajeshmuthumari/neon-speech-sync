@@ -76,7 +76,7 @@ serve(async (req) => {
     }
 
     // Generate enhanced results based on priority
-    const enhancedResults = generateEnhancedResults(analysis, priority)
+    const enhancedResults = await generateEnhancedResults(analysis, priority)
 
     // Update with final results
     await supabaseClient
@@ -112,70 +112,243 @@ serve(async (req) => {
   }
 })
 
-function generateEnhancedResults(analysis: any, priority: string) {
+async function generateEnhancedResults(analysis: any, priority: string) {
   const baseResults = {
     confidence_score: 0.92,
     authenticity_score: 0.88,
-  }
+  };
 
-  if (priority === 'high') {
-    return {
-      ...baseResults,
-      speech_timeline: generateSpeechTimeline(),
-      authenticity_indicators: generateAuthenticityIndicators(),
-      emotional_profile: generateEmotionalProfile(),
-      topics: generateAdvancedTopics(),
+  try {
+    if (priority === 'high' || priority === 'normal') {
+      console.log('Generating enhanced speech timeline analysis...');
+      
+      // Generate real timeline analysis with AI
+      const timelineAnalysis = await generateRealSpeechTimeline(analysis.transcription);
+      const emotionalProfile = await generateRealEmotionalProfile(analysis.transcription);
+      
+      const enhancedResults = {
+        ...baseResults,
+        speech_timeline: timelineAnalysis,
+        emotional_profile: emotionalProfile,
+      };
+
+      if (priority === 'high') {
+        console.log('Generating premium authenticity indicators...');
+        const authenticityIndicators = await generateRealAuthenticityIndicators(analysis.transcription);
+        const advancedTopics = await generateRealAdvancedTopics(analysis.transcription);
+        
+        return {
+          ...enhancedResults,
+          authenticity_indicators: authenticityIndicators,
+          topics: advancedTopics,
+        };
+      }
+
+      return enhancedResults;
     }
-  } else if (priority === 'normal') {
-    return {
-      ...baseResults,
-      emotional_profile: generateEmotionalProfile(),
-      topics: generateBasicTopics(),
-    }
-  } else {
-    return baseResults
+    
+    return baseResults;
+  } catch (error) {
+    console.error('Error generating enhanced results:', error);
+    return baseResults;
   }
 }
 
-function generateSpeechTimeline() {
-  return [
-    { timestamp: 0, emotion: 'confident', sentiment: 'positive', intensity: 0.8 },
-    { timestamp: 30, emotion: 'passionate', sentiment: 'positive', intensity: 0.9 },
-    { timestamp: 60, emotion: 'concerned', sentiment: 'neutral', intensity: 0.6 },
-    { timestamp: 90, emotion: 'hopeful', sentiment: 'positive', intensity: 0.85 },
-  ]
-}
+async function generateRealSpeechTimeline(transcription: string): Promise<any[]> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Analyze this political speech transcript and create a timeline of emotional and thematic shifts. Return a JSON array with objects containing:
+          {
+            "timestamp": seconds (estimate based on word count and natural speaking pace),
+            "topic": "main topic being discussed",
+            "emotion": "dominant emotion (confident, passionate, concerned, hopeful, etc.)",
+            "sentiment": "positive, negative, or neutral",
+            "intensity": 0.0-1.0,
+            "key_phrase": "representative quote from this segment"
+          }
+          
+          Estimate 150-180 words per minute speaking pace. Create 6-8 timeline segments.`
+        },
+        {
+          role: 'user',
+          content: `Create a speech timeline for: "${transcription}"`
+        }
+      ],
+      max_tokens: 800,
+      temperature: 0.1
+    }),
+  });
 
-function generateAuthenticityIndicators() {
-  return {
-    vocal_consistency: 0.89,
-    message_coherence: 0.92,
-    emotional_congruence: 0.86,
-    spontaneity_markers: 0.78,
+  if (!response.ok) {
+    console.error('Timeline analysis failed:', await response.text());
+    return [];
+  }
+
+  const result = await response.json();
+  try {
+    return JSON.parse(result.choices[0].message.content);
+  } catch (e) {
+    console.error('Failed to parse timeline analysis:', result.choices[0].message.content);
+    return [];
   }
 }
 
-function generateEmotionalProfile() {
-  return {
-    primary_emotions: ['confidence', 'passion', 'hope'],
-    emotional_range: 0.74,
-    emotional_stability: 0.81,
-    peak_intensity: 0.94,
-    average_intensity: 0.67,
+async function generateRealEmotionalProfile(transcription: string): Promise<any> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Analyze the emotional characteristics of this political speech. Return JSON with:
+          {
+            "primary_emotions": ["emotion1", "emotion2", "emotion3"],
+            "emotional_range": 0.0-1.0 (how varied emotions are),
+            "emotional_stability": 0.0-1.0 (consistency of emotional tone),
+            "peak_intensity": 0.0-1.0 (highest emotional moment),
+            "average_intensity": 0.0-1.0 (overall emotional engagement),
+            "emotional_arc": "building|declining|stable|fluctuating",
+            "persuasive_moments": ["high impact phrases or segments"],
+            "vulnerability_indicators": 0.0-1.0
+          }`
+        },
+        {
+          role: 'user',
+          content: `Analyze emotional profile of: "${transcription}"`
+        }
+      ],
+      max_tokens: 600,
+      temperature: 0.1
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Emotional profile analysis failed');
+    return null;
+  }
+
+  const result = await response.json();
+  try {
+    return JSON.parse(result.choices[0].message.content);
+  } catch (e) {
+    console.error('Failed to parse emotional profile');
+    return null;
   }
 }
 
-function generateAdvancedTopics() {
-  return [
-    { name: 'Economic Policy', relevance: 0.89, sentiment: 'positive', keywords: ['economy', 'jobs', 'growth'] },
-    { name: 'Healthcare Reform', relevance: 0.76, sentiment: 'neutral', keywords: ['healthcare', 'insurance', 'access'] },
-    { name: 'Education', relevance: 0.63, sentiment: 'positive', keywords: ['schools', 'students', 'future'] },
-  ]
+async function generateRealAuthenticityIndicators(transcription: string): Promise<any> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Analyze this political speech for authenticity markers. Return JSON with:
+          {
+            "vocal_consistency": 0.0-1.0 (consistency in tone and style),
+            "message_coherence": 0.0-1.0 (logical flow and consistency),
+            "emotional_congruence": 0.0-1.0 (emotions match content),
+            "spontaneity_markers": 0.0-1.0 (signs of natural, unscripted speech),
+            "personal_connection": 0.0-1.0 (personal anecdotes, genuine moments),
+            "script_dependency": 0.0-1.0 (how scripted vs natural it sounds),
+            "contradiction_flags": ["any contradictory statements"],
+            "authenticity_strengths": ["positive authenticity indicators"],
+            "authenticity_concerns": ["potential credibility issues"]
+          }`
+        },
+        {
+          role: 'user',
+          content: `Analyze authenticity of: "${transcription}"`
+        }
+      ],
+      max_tokens: 700,
+      temperature: 0.1
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Authenticity analysis failed');
+    return null;
+  }
+
+  const result = await response.json();
+  try {
+    return JSON.parse(result.choices[0].message.content);
+  } catch (e) {
+    console.error('Failed to parse authenticity analysis');
+    return null;
+  }
 }
 
-function generateBasicTopics() {
-  return [
-    { name: 'Policy Issues', relevance: 0.82, sentiment: 'positive' },
-    { name: 'Social Concerns', relevance: 0.68, sentiment: 'neutral' },
-  ]
+async function generateRealAdvancedTopics(transcription: string): Promise<any[]> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `Analyze this political speech for detailed topic breakdown. Return JSON array of topics:
+          [
+            {
+              "name": "topic name",
+              "relevance": 0.0-1.0,
+              "sentiment": "positive|negative|neutral", 
+              "keywords": ["key", "words"],
+              "time_allocation": 0.0-1.0 (portion of speech dedicated to this),
+              "policy_specificity": 0.0-1.0 (how specific vs vague),
+              "emotional_weight": 0.0-1.0 (emotional emphasis placed on topic),
+              "call_to_action_strength": 0.0-1.0
+            }
+          ]
+          
+          Focus on major political topics like economy, healthcare, education, security, etc.`
+        },
+        {
+          role: 'user',
+          content: `Analyze advanced topics in: "${transcription}"`
+        }
+      ],
+      max_tokens: 800,
+      temperature: 0.1
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Advanced topics analysis failed');
+    return [];
+  }
+
+  const result = await response.json();
+  try {
+    return JSON.parse(result.choices[0].message.content);
+  } catch (e) {
+    console.error('Failed to parse advanced topics');
+    return [];
+  }
 }
+
+// All replaced with real AI functions above
