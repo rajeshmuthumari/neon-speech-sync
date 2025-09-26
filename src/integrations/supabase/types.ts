@@ -16,12 +16,15 @@ export type Database = {
     Tables: {
       analysis_results: {
         Row: {
+          authenticity_indicators: Json | null
           authenticity_score: number | null
+          avg_engagement_score: number | null
           body_language: Json | null
           call_to_actions: Json | null
           confidence_score: number | null
           created_at: string
           detected_language: string | null
+          dominant_visual_emotion: string | null
           ego_centric_phrases: number | null
           emotional_profile: Json | null
           emotions: Json | null
@@ -46,14 +49,18 @@ export type Database = {
           urgency_level: string | null
           user_id: string | null
           video_id: string
+          visual_summary: Json | null
         }
         Insert: {
+          authenticity_indicators?: Json | null
           authenticity_score?: number | null
+          avg_engagement_score?: number | null
           body_language?: Json | null
           call_to_actions?: Json | null
           confidence_score?: number | null
           created_at?: string
           detected_language?: string | null
+          dominant_visual_emotion?: string | null
           ego_centric_phrases?: number | null
           emotional_profile?: Json | null
           emotions?: Json | null
@@ -78,14 +85,18 @@ export type Database = {
           urgency_level?: string | null
           user_id?: string | null
           video_id: string
+          visual_summary?: Json | null
         }
         Update: {
+          authenticity_indicators?: Json | null
           authenticity_score?: number | null
+          avg_engagement_score?: number | null
           body_language?: Json | null
           call_to_actions?: Json | null
           confidence_score?: number | null
           created_at?: string
           detected_language?: string | null
+          dominant_visual_emotion?: string | null
           ego_centric_phrases?: number | null
           emotional_profile?: Json | null
           emotions?: Json | null
@@ -110,6 +121,7 @@ export type Database = {
           urgency_level?: string | null
           user_id?: string | null
           video_id?: string
+          visual_summary?: Json | null
         }
         Relationships: [
           {
@@ -249,12 +261,68 @@ export type Database = {
         }
         Relationships: []
       }
+      visual_analysis: {
+        Row: {
+          analysis_id: string
+          body_language: Json | null
+          confidence_score: number | null
+          created_at: string
+          dominant_emotion: string | null
+          emotion_confidence: number | null
+          engagement_score: number | null
+          eye_contact_score: number | null
+          facial_emotions: Json | null
+          frame_timestamp: number
+          id: string
+          micro_expressions: Json | null
+        }
+        Insert: {
+          analysis_id: string
+          body_language?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          dominant_emotion?: string | null
+          emotion_confidence?: number | null
+          engagement_score?: number | null
+          eye_contact_score?: number | null
+          facial_emotions?: Json | null
+          frame_timestamp: number
+          id?: string
+          micro_expressions?: Json | null
+        }
+        Update: {
+          analysis_id?: string
+          body_language?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          dominant_emotion?: string | null
+          emotion_confidence?: number | null
+          engagement_score?: number | null
+          eye_contact_score?: number | null
+          facial_emotions?: Json | null
+          frame_timestamp?: number
+          id?: string
+          micro_expressions?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visual_analysis_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_visual_summary: {
+        Args: { analysis_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
