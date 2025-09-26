@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Video, X, CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { VideoAnalyzer } from './VideoAnalyzer';
 
 interface VideoUploaderProps {
   onAnalyze: (videoId: string) => void;
@@ -15,6 +16,8 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [showVisualAnalyzer, setShowVisualAnalyzer] = useState(false);
+  const [visualFrames, setVisualFrames] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -45,6 +48,11 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
 
     setSelectedFile(file);
     setUploadStatus('idle');
+  };
+
+  const handleVisualAnalysisComplete = (frames: any[]) => {
+    setVisualFrames(frames);
+    setShowVisualAnalyzer(false);
   };
 
   const uploadVideo = async () => {
@@ -106,14 +114,21 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
 
       if (dbError) throw dbError;
 
-      setUploadStatus('success');
-      toast({
-        title: "Upload successful",
-        description: "Video uploaded successfully. Starting analysis...",
-      });
-
       // Start analysis
       onAnalyze(videoData.id);
+
+      // Start analysis with visual frames if available
+      const { error: analysisError } = await supabase.functions.invoke('analyze-speech', {
+        body: { 
+          video_id: videoData.id,
+          visual_frames: visualFrames.length > 0 ? visualFrames : null
+        }
+      });
+
+      if (analysisError) {
+        console.error('Analysis error:', analysisError);
+        throw new Error('Failed to start analysis');
+      }
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -132,6 +147,8 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
     setSelectedFile(null);
     setUploadStatus('idle');
     setUploadProgress(0);
+    setVisualFrames([]);
+    setShowVisualAnalyzer(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -230,17 +247,52 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
                   </div>
                 )}
 
-                <Button 
-                  onClick={uploadVideo}
-                  disabled={isUploading || uploadStatus === 'success'}
-                  className="w-full"
-                >
-                  {isUploading ? 'Uploading...' : 'Upload & Analyze'}
-                </Button>
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => setShowVisualAnalyzer(true)}
+                    disabled={isUploading || uploadStatus === 'success'}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {visualFrames.length > 0 ? `Visual Analysis Complete (${visualFrames.length} frames)` : 'Start Visual Analysis'}
+                  </Button>
+                
+                  <Button 
+                    onClick={uploadVideo}
+                    disabled={isUploading || uploadStatus === 'success'}
+                    className="w-full"
+                  >
+                    {isUploading ? 'Uploading...' : 'Upload & Analyze'}
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Visual Analyzer Modal */}
+      {showVisualAnalyzer && selectedFile && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Visual Analysis</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowVisualAnalyzer(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <VideoAnalyzer 
+                videoFile={selectedFile} 
+                onAnalysisComplete={handleVisualAnalysisComplete}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

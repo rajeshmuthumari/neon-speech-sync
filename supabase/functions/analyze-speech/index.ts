@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { video_id } = await req.json();
+    const { video_id, visual_frames } = await req.json();
     
     if (!video_id) {
       throw new Error('Video ID is required');
@@ -307,10 +307,72 @@ Respond in valid JSON format:
       emotional_profile: analysis.emotional_profile,
       rhetorical_styles: analysis.rhetorical_styles,
       urgency_level: analysis.urgency_level,
-      political_positioning: analysis.political_positioning
+      political_positioning: analysis.political_positioning,
+      visual_frames_received: visual_frames ? visual_frames.length : 0
     });
 
-    // Save analysis results to database
+    // Process visual analysis if provided
+    let visualAnalysisId = null;
+    let visualSummary = null;
+    let avgEngagementScore = null;
+    let dominantVisualEmotion = null;
+    let authenticityIndicators = null;
+
+    if (visual_frames && visual_frames.length > 0) {
+      console.log('Processing visual analysis data...');
+      
+      // Calculate visual summary
+      const emotionCounts = visual_frames.reduce((acc: Record<string, number>, frame: any) => {
+        acc[frame.emotion] = (acc[frame.emotion] || 0) + 1;
+        return acc;
+      }, {});
+
+      const avgEmotionConfidence = visual_frames.reduce((sum: number, frame: any) => 
+        sum + frame.emotion_confidence, 0) / visual_frames.length;
+      
+      const avgEyeContact = visual_frames.reduce((sum: number, frame: any) => 
+        sum + frame.eye_contact_score, 0) / visual_frames.length;
+      
+      avgEngagementScore = visual_frames.reduce((sum: number, frame: any) => 
+        sum + frame.engagement_score, 0) / visual_frames.length;
+
+      const avgAuthenticityScore = visual_frames.reduce((sum: number, frame: any) => 
+        sum + frame.authenticity_score, 0) / visual_frames.length;
+
+      // Find dominant emotion
+      dominantVisualEmotion = Object.keys(emotionCounts).reduce((a, b) => 
+        emotionCounts[a] > emotionCounts[b] ? a : b);
+
+      visualSummary = {
+        total_frames_analyzed: visual_frames.length,
+        avg_emotion_confidence: avgEmotionConfidence,
+        avg_eye_contact: avgEyeContact,
+        emotion_distribution: emotionCounts
+      };
+
+      authenticityIndicators = {
+        avg_authenticity_score: avgAuthenticityScore,
+        micro_expressions_detected: Math.floor(Math.random() * 5), // Mock for now
+        consistency_score: avgAuthenticityScore > 0.8 ? 0.9 : 0.7
+      };
+
+      // Save visual analysis frames to database
+      for (const frame of visual_frames) {
+        await supabase
+          .from('visual_analysis')
+          .insert({
+            analysis_id: null, // Will be updated after main analysis is created
+            timestamp: frame.timestamp,
+            dominant_emotion: frame.emotion,
+            emotion_confidence: frame.emotion_confidence,
+            engagement_score: frame.engagement_score,
+            eye_contact_score: frame.eye_contact_score,
+            authenticity_score: frame.authenticity_score
+          });
+      }
+    }
+
+    // Save analysis results to database with visual analysis data
     const { data: analysisResult, error: analysisError } = await supabase
       .from('analysis_results')
       .insert({
@@ -335,7 +397,12 @@ Respond in valid JSON format:
         political_positioning: analysis.political_positioning,
         speech_timeline: analysis.speech_timeline,
         key_themes: analysis.key_themes,
-        processing_status: 'completed'
+        processing_status: 'completed',
+        // Visual analysis fields
+        visual_summary: visualSummary,
+        avg_engagement_score: avgEngagementScore,
+        dominant_visual_emotion: dominantVisualEmotion,
+        authenticity_indicators: authenticityIndicators
       })
       .select()
       .single();
@@ -343,6 +410,14 @@ Respond in valid JSON format:
     if (analysisError) {
       console.error('Database error:', analysisError);
       throw new Error('Failed to save analysis results');
+    }
+
+    // Update visual analysis records with the analysis ID
+    if (visual_frames && visual_frames.length > 0) {
+      await supabase
+        .from('visual_analysis')
+        .update({ analysis_id: analysisResult.id })
+        .is('analysis_id', null);
     }
 
     // Update video status to completed

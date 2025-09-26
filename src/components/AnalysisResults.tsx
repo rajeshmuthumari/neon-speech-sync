@@ -11,6 +11,7 @@ import { IssueHeatmap } from "./analysis/IssueHeatmap";
 import { RhetoricalStylesChart } from "./analysis/RhetoricalStylesChart";
 import { PoliticalPositioningCard } from "./analysis/PoliticalPositioningCard";
 import { InteractiveTranscript } from "./analysis/InteractiveTranscript";
+import { VisualAnalysisChart } from "./analysis/VisualAnalysisChart";
 
 interface AnalysisResultsProps {
   analysis: {
@@ -65,6 +66,20 @@ interface AnalysisResultsProps {
     }>;
     key_themes: string[];
     insights?: string[];
+    // Visual analysis fields
+    visual_summary?: {
+      total_frames_analyzed: number;
+      avg_emotion_confidence: number;
+      avg_eye_contact: number;
+      emotion_distribution: Record<string, number>;
+    };
+    avg_engagement_score?: number;
+    dominant_visual_emotion?: string;
+    authenticity_indicators?: {
+      avg_authenticity_score: number;
+      micro_expressions_detected: number;
+      consistency_score: number;
+    };
   };
 }
 
@@ -170,6 +185,21 @@ export function AnalysisResults({ analysis }: AnalysisResultsProps) {
         transcription={analysis.transcription || 'No transcription available'}
         timeline={speechTimeline}
       />
+
+      {/* Visual Analysis Section */}
+      {(analysis.visual_summary || analysis.avg_engagement_score || analysis.dominant_visual_emotion) && (
+        <div className="mb-8">
+          <h3 className="text-xl font-semibold mb-6">Visual Analysis</h3>
+          <VisualAnalysisChart 
+            data={{
+              visual_summary: analysis.visual_summary,
+              avg_engagement_score: analysis.avg_engagement_score,
+              dominant_visual_emotion: analysis.dominant_visual_emotion,
+              authenticity_indicators: analysis.authenticity_indicators
+            }}
+          />
+        </div>
+      )}
 
       {/* Legacy Insights Tab */}
       {analysis.insights && analysis.insights.length > 0 && (
