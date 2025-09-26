@@ -61,9 +61,16 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
         throw new Error('Please log in to upload videos');
       }
 
-      // Create unique filename
+      // Create unique filename with sanitized name
       const timestamp = Date.now();
-      const fileName = `${user.id}/${timestamp}_${selectedFile.name}`;
+      // Sanitize filename to remove special characters
+      const sanitizedName = selectedFile.name
+        .replace(/[^\w\s.-]/g, '') // Remove special characters except word chars, spaces, dots, hyphens
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .toLowerCase();
+      const fileName = `${user.id}/${timestamp}_${sanitizedName}`;
+      
+      console.log('Uploading file with path:', fileName);
       
       // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
