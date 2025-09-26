@@ -114,21 +114,10 @@ export function VideoUploader({ onAnalyze }: VideoUploaderProps) {
 
       if (dbError) throw dbError;
 
-      // Start analysis
+      setUploadStatus('success');
+      
+      // Pass video ID to parent for analysis
       onAnalyze(videoData.id);
-
-      // Start analysis with visual frames if available
-      const { error: analysisError } = await supabase.functions.invoke('analyze-speech', {
-        body: { 
-          video_id: videoData.id,
-          visual_frames: visualFrames.length > 0 ? visualFrames : null
-        }
-      });
-
-      if (analysisError) {
-        console.error('Analysis error:', analysisError);
-        throw new Error('Failed to start analysis');
-      }
 
     } catch (error) {
       console.error('Upload error:', error);
