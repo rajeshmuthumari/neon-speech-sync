@@ -16,11 +16,14 @@ export type Database = {
     Tables: {
       analysis_results: {
         Row: {
+          authenticity_score: number | null
           body_language: Json | null
+          call_to_actions: Json | null
           confidence_score: number | null
           created_at: string
           detected_language: string | null
           ego_centric_phrases: number | null
+          emotional_profile: Json | null
           emotions: Json | null
           empathy_score: number | null
           eye_contact_score: number | null
@@ -29,21 +32,30 @@ export type Database = {
           inclusive_phrases: number | null
           key_themes: string[] | null
           overall_sentiment: string | null
+          political_positioning: string | null
           processing_error: string | null
           processing_status: string | null
+          rhetorical_styles: Json | null
           sentiment_confidence: number | null
+          sentiment_score: number | null
+          speech_timeline: Json | null
+          topic_breakdown: Json | null
           topics: Json | null
           transcription: string | null
           updated_at: string
+          urgency_level: string | null
           user_id: string | null
           video_id: string
         }
         Insert: {
+          authenticity_score?: number | null
           body_language?: Json | null
+          call_to_actions?: Json | null
           confidence_score?: number | null
           created_at?: string
           detected_language?: string | null
           ego_centric_phrases?: number | null
+          emotional_profile?: Json | null
           emotions?: Json | null
           empathy_score?: number | null
           eye_contact_score?: number | null
@@ -52,21 +64,30 @@ export type Database = {
           inclusive_phrases?: number | null
           key_themes?: string[] | null
           overall_sentiment?: string | null
+          political_positioning?: string | null
           processing_error?: string | null
           processing_status?: string | null
+          rhetorical_styles?: Json | null
           sentiment_confidence?: number | null
+          sentiment_score?: number | null
+          speech_timeline?: Json | null
+          topic_breakdown?: Json | null
           topics?: Json | null
           transcription?: string | null
           updated_at?: string
+          urgency_level?: string | null
           user_id?: string | null
           video_id: string
         }
         Update: {
+          authenticity_score?: number | null
           body_language?: Json | null
+          call_to_actions?: Json | null
           confidence_score?: number | null
           created_at?: string
           detected_language?: string | null
           ego_centric_phrases?: number | null
+          emotional_profile?: Json | null
           emotions?: Json | null
           empathy_score?: number | null
           eye_contact_score?: number | null
@@ -75,12 +96,18 @@ export type Database = {
           inclusive_phrases?: number | null
           key_themes?: string[] | null
           overall_sentiment?: string | null
+          political_positioning?: string | null
           processing_error?: string | null
           processing_status?: string | null
+          rhetorical_styles?: Json | null
           sentiment_confidence?: number | null
+          sentiment_score?: number | null
+          speech_timeline?: Json | null
+          topic_breakdown?: Json | null
           topics?: Json | null
           transcription?: string | null
           updated_at?: string
+          urgency_level?: string | null
           user_id?: string | null
           video_id?: string
         }
@@ -93,6 +120,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      speech_segments: {
+        Row: {
+          analysis_id: string
+          created_at: string | null
+          dominant_emotion: string | null
+          emotion_scores: Json | null
+          end_timestamp: number
+          id: string
+          rhetorical_style: string | null
+          sentiment_score: number | null
+          start_timestamp: number
+          text_content: string | null
+          topic_tags: string[] | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string | null
+          dominant_emotion?: string | null
+          emotion_scores?: Json | null
+          end_timestamp: number
+          id?: string
+          rhetorical_style?: string | null
+          sentiment_score?: number | null
+          start_timestamp: number
+          text_content?: string | null
+          topic_tags?: string[] | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string | null
+          dominant_emotion?: string | null
+          emotion_scores?: Json | null
+          end_timestamp?: number
+          id?: string
+          rhetorical_style?: string | null
+          sentiment_score?: number | null
+          start_timestamp?: number
+          text_content?: string | null
+          topic_tags?: string[] | null
+        }
+        Relationships: []
       }
       timeline_analysis: {
         Row: {

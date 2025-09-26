@@ -87,32 +87,125 @@ serve(async (req) => {
 
     console.log('Transcription completed, analyzing content...');
 
-    // Analyze sentiment and emotions using GPT
+    // Analyze sentiment and emotions using GPT with enhanced prompting
     const analysisPrompt = `
-Analyze this political speech in detail. Provide a comprehensive analysis including:
+Analyze this political speech comprehensively. Provide detailed analysis including:
 
-1. Overall sentiment (Positive/Negative/Neutral)
-2. Emotional analysis (joy, anger, fear, hope, compassion percentages)
-3. Empathy scoring based on inclusive language vs ego-centric language
-4. Topic classification (development, health, education, employment, corruption, religion)
-5. Key themes and phrases
+1. SENTIMENT ANALYSIS:
+   - Overall sentiment (Positive/Negative/Neutral)
+   - Sentiment score (-1 to +1, where -1 is most negative, +1 is most positive)
+   - Confidence level
+
+2. EMOTIONAL PROFILE:
+   - Joy, Fear, Anger, Hope, Compassion (0-100 percentages)
+   - Dominant emotion throughout speech
+
+3. EMPATHY & AUTHENTICITY:
+   - Empathy score (0-100)
+   - Authenticity score (0-100)
+   - Count of inclusive vs ego-centric phrases
+
+4. RHETORICAL STYLES:
+   - Promises made (count and examples)
+   - Blame toward opponents (count and examples)
+   - Calls to unity (count and examples)
+   - Visionary statements (count and examples)
+
+5. URGENCY ANALYSIS:
+   - Overall urgency level (Low/Medium/High)
+   - Urgency indicators and language patterns
+
+6. TOPIC BREAKDOWN:
+   - Percentage of speech time on each topic
+   - Key topics: development, health, education, employment, corruption, religion, security, economy
+
+7. CALL-TO-ACTION STATEMENTS:
+   - Identify specific calls to action with approximate timestamps
+   - Type of action requested
+
+8. POLITICAL POSITIONING:
+   - Overall positioning: Aggressor, Defender, Visionary, or Neutral
+   - Supporting evidence
+
+9. TIMELINE ANALYSIS:
+   - Emotion spikes at different timestamps
+   - Sentiment changes throughout speech
 
 Speech text: "${transcription}"
 
-Please respond in valid JSON format with this structure:
+Respond in valid JSON format:
 {
   "overall_sentiment": "Positive/Negative/Neutral",
+  "sentiment_score": 0.75,
   "sentiment_confidence": 0.85,
-  "emotions": {
+  "emotional_profile": {
     "joy": 65,
+    "fear": 15,
     "anger": 10,
-    "fear": 5,
     "hope": 80,
-    "compassion": 70
+    "compassion": 70,
+    "dominant_emotion": "hope"
   },
   "empathy_score": 75,
+  "authenticity_score": 82,
   "inclusive_phrases": 8,
   "ego_centric_phrases": 2,
+  "rhetorical_styles": {
+    "promises": {
+      "count": 5,
+      "examples": ["We will build new hospitals", "Jobs for every citizen"]
+    },
+    "blame_opponents": {
+      "count": 2,
+      "examples": ["Previous government failed", "Opposition blocked progress"]
+    },
+    "calls_to_unity": {
+      "count": 3,
+      "examples": ["We must stand together", "United we progress"]
+    },
+    "visionary_statements": {
+      "count": 4,
+      "examples": ["Future of prosperity", "Nation of opportunities"]
+    }
+  },
+  "urgency_level": "Medium",
+  "topic_breakdown": {
+    "development": 25.5,
+    "health": 15.3,
+    "education": 18.7,
+    "employment": 16.6,
+    "corruption": 5.1,
+    "religion": 3.2,
+    "security": 8.4,
+    "economy": 12.2
+  },
+  "call_to_actions": [
+    {
+      "timestamp": "2:30",
+      "text": "Vote for change in the upcoming election",
+      "type": "electoral"
+    },
+    {
+      "timestamp": "8:45",
+      "text": "Join our development programs",
+      "type": "participation"
+    }
+  ],
+  "political_positioning": "Visionary",
+  "speech_timeline": [
+    {
+      "timestamp": "0:30",
+      "emotion": "hope",
+      "sentiment": 0.6,
+      "topic": "development"
+    },
+    {
+      "timestamp": "3:15",
+      "emotion": "compassion",
+      "sentiment": 0.8,
+      "topic": "health"
+    }
+  ],
   "topics": {
     "development": 0.9,
     "health": 0.3,
@@ -125,7 +218,9 @@ Please respond in valid JSON format with this structure:
   "insights": [
     "Speaker demonstrates high empathy through inclusive language",
     "Strong focus on development and progress themes",
-    "Positive emotional tone throughout the speech"
+    "Positive emotional tone throughout the speech",
+    "Uses visionary rhetoric to inspire hope",
+    "Moderate urgency suggests measured approach"
   ]
 }`;
 
@@ -171,14 +266,23 @@ Please respond in valid JSON format with this structure:
         video_id: video_id,
         user_id: video.user_id,
         transcription: transcription,
-        detected_language: 'hi', // Could be detected from Whisper
+        detected_language: 'hi',
         overall_sentiment: analysis.overall_sentiment,
+        sentiment_score: analysis.sentiment_score,
         sentiment_confidence: analysis.sentiment_confidence,
-        emotions: analysis.emotions,
+        emotions: analysis.emotions || analysis.emotional_profile?.emotions,
+        emotional_profile: analysis.emotional_profile,
         empathy_score: analysis.empathy_score,
+        authenticity_score: analysis.authenticity_score,
         inclusive_phrases: analysis.inclusive_phrases,
         ego_centric_phrases: analysis.ego_centric_phrases,
+        rhetorical_styles: analysis.rhetorical_styles,
+        urgency_level: analysis.urgency_level,
         topics: analysis.topics,
+        topic_breakdown: analysis.topic_breakdown,
+        call_to_actions: analysis.call_to_actions,
+        political_positioning: analysis.political_positioning,
+        speech_timeline: analysis.speech_timeline,
         key_themes: analysis.key_themes,
         processing_status: 'completed'
       })
