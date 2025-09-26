@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { AudioUploader } from "@/components/AudioUploader";
-import { VideoUploader } from "@/components/VideoUploader";
+import { EnhancedVideoAnalyzer } from "@/components/EnhancedVideoAnalyzer";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
 
@@ -203,7 +203,7 @@ export default function Dashboard() {
               </TabsList>
               
               <TabsContent value="video" className="mt-4">
-                <VideoUploader onAnalyze={handleVideoAnalysis} />
+                <EnhancedVideoAnalyzer />
               </TabsContent>
               
               <TabsContent value="record" className="mt-4">

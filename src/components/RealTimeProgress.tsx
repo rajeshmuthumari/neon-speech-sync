@@ -13,7 +13,7 @@ interface RealTimeProgressProps {
 
 export const RealTimeProgress = ({ analysisId, onComplete, onError }: RealTimeProgressProps) => {
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState<'processing' | 'completed' | 'error'>('processing');
+  const [status, setStatus] = useState<'processing' | 'completed' | 'error' | 'pending'>('processing');
   const [currentStage, setCurrentStage] = useState('Initializing...');
   const [analysis, setAnalysis] = useState<any>(null);
 
@@ -36,7 +36,7 @@ export const RealTimeProgress = ({ analysisId, onComplete, onError }: RealTimePr
           console.log('Analysis update received:', updatedAnalysis);
           
           setAnalysis(updatedAnalysis);
-          setStatus(updatedAnalysis.processing_status);
+          setStatus(updatedAnalysis.processing_status as 'processing' | 'completed' | 'error' | 'pending');
           
           // Update progress based on confidence_score during processing
           if (updatedAnalysis.processing_status === 'processing' && updatedAnalysis.confidence_score) {
@@ -85,7 +85,7 @@ export const RealTimeProgress = ({ analysisId, onComplete, onError }: RealTimePr
 
       if (data) {
         setAnalysis(data);
-        setStatus(data.processing_status);
+        setStatus(data.processing_status as 'processing' | 'completed' | 'error' | 'pending');
         
         if (data.processing_status === 'completed') {
           setProgress(100);
