@@ -13,6 +13,7 @@ import { AudioUploader } from "@/components/AudioUploader";
 import { EnhancedVideoAnalyzer } from "@/components/EnhancedVideoAnalyzer";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
+import { TodaysAnalytics } from "@/components/TodaysAnalytics";
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
@@ -56,38 +57,76 @@ export default function Dashboard() {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Simulate analysis progress for audio
-    const interval = setInterval(() => {
-      setAnalysisProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsAnalyzing(false);
-          // Mock analysis results
-          setCurrentAnalysis({
-            id: Date.now().toString(),
-            timestamp: new Date().toISOString(),
-            duration: "2m 34s",
-            sentiment: "Positive",
-            confidence: 87,
-            emotions: {
-              joy: 65,
-              confidence: 78,
-              neutral: 45,
-              concern: 23
-            },
-            keywords: ["innovation", "growth", "success", "team", "project"],
-            transcription: "This is a sample transcription of the analyzed speech content...",
-            insights: [
-              "Speaker shows high confidence throughout the speech",
-              "Positive sentiment indicates good morale",
-              "Clear articulation suggests good presentation skills"
-            ]
-          });
-          return 100;
-        }
-        return prev + 2;
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Please log in to analyze audio');
+      }
+
+      // Create a FormData to upload the audio file first
+      const timestamp = Date.now();
+      const fileName = `${user.id}/audio_${timestamp}.wav`;
+      
+      // Convert Blob to File if needed
+      const audioFile = audioData instanceof File ? audioData : new File([audioData], 'recording.wav', { type: 'audio/wav' });
+      
+      // Upload audio to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos') // Using same bucket for simplicity
+        .upload(fileName, audioFile);
+
+      if (uploadError) throw uploadError;
+
+      // Create video record for the audio file
+      const { data: videoData, error: videoError } = await supabase
+        .from('videos')
+        .insert({
+          user_id: user.id,
+          title: audioFile.name,
+          file_path: uploadData.path,
+          file_size: audioFile.size,
+          mime_type: audioFile.type,
+          upload_status: 'uploaded'
+        })
+        .select()
+        .single();
+
+      if (videoError) throw videoError;
+
+      // Start AI analysis using the same edge function
+      const response = await supabase.functions.invoke('analyze-speech', {
+        body: { videoId: videoData.id }
       });
-    }, 100);
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      // Poll for analysis completion
+      const checkProgress = setInterval(async () => {
+        const { data: analysisData } = await supabase
+          .from('analysis_results')
+          .select('*')
+          .eq('video_id', videoData.id)
+          .single();
+
+        if (analysisData && analysisData.processing_status === 'completed') {
+          clearInterval(checkProgress);
+          setIsAnalyzing(false);
+          setAnalysisProgress(100);
+          setCurrentAnalysis(analysisData);
+        } else {
+          setAnalysisProgress(prev => Math.min(prev + 5, 95));
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Audio analysis error:', error);
+      setIsAnalyzing(false);
+      setAnalysisProgress(0);
+      // Show error toast would be good here
+    }
   };
 
   const handleVideoAnalysis = async (videoId: string) => {
@@ -278,26 +317,8 @@ export default function Dashboard() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Quick Stats */}
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium">Today's Analytics</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Analyses</span>
-                <span className="font-semibold">12</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Avg. Sentiment</span>
-                <Badge variant="secondary">Positive</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Confidence</span>
-                <span className="font-semibold">84%</span>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Real-time Stats */}
+          <TodaysAnalytics />
 
           {/* Analysis History */}
           <AnalysisHistory onSelectAnalysis={setCurrentAnalysis} />

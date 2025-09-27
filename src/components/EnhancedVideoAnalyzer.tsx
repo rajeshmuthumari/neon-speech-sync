@@ -6,11 +6,9 @@ import { Upload, Video, Brain, Loader2, Zap, Settings } from "lucide-react";
 import { VideoUploader } from "./VideoUploader";
 import { RecentAnalyses } from "./RecentAnalyses";
 import { RealTimeProgress } from "./RealTimeProgress";
-import { PerformanceOptimizer } from "./PerformanceOptimizer";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const EnhancedVideoAnalyzer = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -183,28 +181,8 @@ export const EnhancedVideoAnalyzer = () => {
         </CardContent>
       </Card>
 
-      {/* Tabs for Analysis History and Performance */}
-      <Tabs defaultValue="history" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="history">Analysis History</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="history" className="space-y-4">
-          <RecentAnalyses />
-        </TabsContent>
-        
-        <TabsContent value="performance" className="space-y-4">
-          <PerformanceOptimizer 
-            onOptimizationApplied={(metric, improvement) => {
-              toast({
-                title: "Performance Improved",
-                description: `${metric} optimization applied: +${improvement}% improvement`,
-              });
-            }}
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Analysis History */}
+      <RecentAnalyses />
     </div>
   );
 };

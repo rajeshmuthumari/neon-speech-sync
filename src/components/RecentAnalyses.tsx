@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,75 +11,103 @@ import {
   Eye, 
   MoreHorizontal,
   Calendar,
-  FileAudio
+  FileAudio,
+  Brain
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-// Mock data for recent analyses
-const recentAnalyses = [
-  {
-    id: "1",
-    title: "Team Meeting Presentation",
-    timestamp: "2 hours ago",
-    duration: "3m 45s",
-    sentiment: "Positive",
-    confidence: 92,
-    date: "Today"
-  },
-  {
-    id: "2", 
-    title: "Customer Call Recording",
-    timestamp: "5 hours ago",
-    duration: "12m 30s",
-    sentiment: "Neutral",
-    confidence: 78,
-    date: "Today"
-  },
-  {
-    id: "3",
-    title: "Product Demo Session",
-    timestamp: "1 day ago", 
-    duration: "8m 15s",
-    sentiment: "Positive",
-    confidence: 89,
-    date: "Yesterday"
-  },
-  {
-    id: "4",
-    title: "Training Workshop",
-    timestamp: "2 days ago",
-    duration: "15m 22s", 
-    sentiment: "Positive",
-    confidence: 85,
-    date: "Dec 23"
-  },
-  {
-    id: "5",
-    title: "Feedback Session",
-    timestamp: "3 days ago",
-    duration: "6m 18s",
-    sentiment: "Mixed",
-    confidence: 74,
-    date: "Dec 22"
-  }
-];
+interface RecentAnalysis {
+  id: string;
+  created_at: string;
+  transcription: string;
+  overall_sentiment: string;
+  sentiment_score: number;
+  empathy_score: number;
+  processing_status: string;
+}
 
 export function RecentAnalyses() {
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment.toLowerCase()) {
-      case 'positive': return 'bg-speech-success text-white';
-      case 'negative': return 'bg-speech-error text-white';
-      case 'neutral': return 'bg-speech-secondary text-white';
-      case 'mixed': return 'bg-speech-warning text-white';
-      default: return 'bg-muted';
+  const [analyses, setAnalyses] = useState<RecentAnalysis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchRecentAnalyses();
+  }, [user]);
+
+  const fetchRecentAnalyses = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('analysis_results')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setAnalyses(data || []);
+    } catch (error) {
+      console.error('Error fetching recent analyses:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 90) return 'text-speech-success';
-    if (confidence >= 75) return 'text-speech-primary';
-    if (confidence >= 60) return 'text-speech-warning';
-    return 'text-speech-error';
+  const getSentimentColor = (sentiment: string) => {
+    switch (sentiment?.toLowerCase()) {
+      case 'positive': return 'bg-green-100 text-green-800 border-green-200';
+      case 'negative': return 'bg-red-100 text-red-800 border-red-200';
+      case 'neutral': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'mixed': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default: return 'bg-blue-100 text-blue-800 border-blue-200';
+    }
   };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 90) return 'text-green-600';
+    if (confidence >= 75) return 'text-blue-600';
+    if (confidence >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  if (loading) {
+    return (
+      <Card className="glass">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <History className="w-4 h-4" />
+            Recent Analyses
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="animate-pulse space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-20 bg-muted/50 rounded-lg" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="glass">
@@ -92,59 +121,90 @@ export function RecentAnalyses() {
       <CardContent className="p-0">
         <ScrollArea className="h-96">
           <div className="px-6 space-y-3">
-            {recentAnalyses.map((analysis, index) => (
+            {analyses.length > 0 ? analyses.map((analysis, index) => (
               <div key={analysis.id}>
                 <div className="space-y-3 py-3">
                   {/* Header with title and actions */}
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium text-sm truncate">
-                        {analysis.title}
+                        Analysis #{analysis.id.slice(-8)}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
-                          {analysis.timestamp}
+                          {formatDate(analysis.created_at)}
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <FileAudio className="w-3 h-3" />
-                          {analysis.duration}
-                        </div>
+                        <Badge variant={analysis.processing_status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                          {analysis.processing_status}
+                        </Badge>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="w-3 h-3" />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => navigate(`/analysis/${analysis.id}`)}
+                    >
+                      <Eye className="w-3 h-3" />
                     </Button>
                   </div>
+                  
+                  {/* Transcription Preview */}
+                  {analysis.transcription && (
+                    <div className="mb-2">
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {analysis.transcription.substring(0, 100)}...
+                      </p>
+                    </div>
+                  )}
                   
                   {/* Analysis metrics */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge 
-                        className={`text-xs px-2 py-1 ${getSentimentColor(analysis.sentiment)}`}
-                      >
-                        {analysis.sentiment}
-                      </Badge>
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3 text-muted-foreground" />
-                        <span className={`text-xs font-medium ${getConfidenceColor(analysis.confidence)}`}>
-                          {analysis.confidence}%
+                      {analysis.overall_sentiment && (
+                        <Badge className={`text-xs px-2 py-1 ${getSentimentColor(analysis.overall_sentiment)}`}>
+                          {analysis.overall_sentiment}
+                        </Badge>
+                      )}
+                      {analysis.sentiment_score && (
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3 text-muted-foreground" />
+                          <span className={`text-xs font-medium ${getConfidenceColor(Math.abs(analysis.sentiment_score * 100))}`}>
+                            {Math.abs(analysis.sentiment_score * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      )}
+                      {analysis.empathy_score && (
+                        <span className="text-xs text-muted-foreground">
+                          Empathy: {analysis.empathy_score}%
                         </span>
-                      </div>
+                      )}
                     </div>
                     
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 text-xs"
+                      onClick={() => navigate(`/analysis/${analysis.id}`)}
+                    >
                       <Eye className="w-3 h-3 mr-1" />
                       View
                     </Button>
                   </div>
                 </div>
                 
-                {index < recentAnalyses.length - 1 && (
+                {index < analyses.length - 1 && (
                   <Separator className="opacity-50" />
                 )}
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Brain className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No recent analyses</p>
+                <p className="text-sm">Upload a video to get started</p>
+              </div>
+            )}
           </div>
         </ScrollArea>
         
