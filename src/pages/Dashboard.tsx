@@ -12,8 +12,6 @@ import { AudioRecorder } from "@/components/AudioRecorder";
 import { AudioUploader } from "@/components/AudioUploader";
 import { EnhancedVideoAnalyzer } from "@/components/EnhancedVideoAnalyzer";
 import { AnalysisResults } from "@/components/AnalysisResults";
-import { AnalysisHistory } from "@/components/AnalysisHistory";
-import { TodaysAnalytics } from "@/components/TodaysAnalytics";
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
@@ -315,13 +313,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - Removed sections per user request */}
         <div className="space-y-6">
-          {/* Real-time Stats */}
-          <TodaysAnalytics />
-
-          {/* Analysis History */}
-          <AnalysisHistory onSelectAnalysis={setCurrentAnalysis} />
         </div>
       </div>
     </div>
