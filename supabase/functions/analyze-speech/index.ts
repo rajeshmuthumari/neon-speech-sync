@@ -446,25 +446,30 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
 
-    } catch (processingError: any) {
-      console.error('Processing error:', processingError)
-      
-      // Update analysis status to error
-      await supabaseClient
-        .from('analysis_results')
-        .update({
-          processing_status: 'error',
-          processing_error: processingError?.message || 'Processing failed'
-        })
-        .eq('id', analysis.id)
+      } catch (processingError: any) {
+        console.error('Processing error:', processingError)
+        console.error('Full error details:', JSON.stringify(processingError, null, 2))
+        
+        // Update analysis status to error
+        await supabaseClient
+          .from('analysis_results')
+          .update({
+            processing_status: 'error',
+            processing_error: processingError?.message || 'Processing failed'
+          })
+          .eq('id', analysis.id)
 
-      throw processingError
-    }
+        throw processingError
+      }
 
   } catch (error: any) {
     console.error('Error in analyze-speech function:', error)
+    console.error('Full error stack:', error?.stack)
     return new Response(
-      JSON.stringify({ error: error?.message || 'Unknown error occurred' }),
+      JSON.stringify({ 
+        error: error?.message || 'Unknown error occurred',
+        details: error?.stack || 'No stack trace available'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
