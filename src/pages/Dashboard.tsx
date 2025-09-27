@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, Upload, Play, Pause, Square, AudioWaveform, Brain, Activity, Video, LogOut } from "lucide-react";
+import { Mic, Upload, Play, Pause, Square, AudioWaveform, Brain, Activity, Video, LogOut, History, BarChart3, GitCompare, Menu } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { AudioUploader } from "@/components/AudioUploader";
 import { EnhancedVideoAnalyzer } from "@/components/EnhancedVideoAnalyzer";
-import { AnalysisResults } from "@/components/AnalysisResults";
+import { BatchAnalyzer } from "@/components/BatchAnalyzer";
 
 export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
@@ -179,6 +179,28 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {/* Navigation Menu */}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/history')}
+              className="glass"
+            >
+              <History className="w-4 h-4 mr-2" />
+              History
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/analytics')}
+              className="glass"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Analytics
+            </Button>
+          </div>
+          
           <Badge variant="secondary" className="glass">
             <Activity className="w-4 h-4 mr-1" />
             Live Analysis
@@ -253,7 +275,10 @@ export default function Dashboard() {
               </TabsContent>
               
               <TabsContent value="upload" className="mt-4">
-                <AudioUploader onAnalyze={handleStartAnalysis} />
+                <div className="space-y-4">
+                  <AudioUploader onAnalyze={handleStartAnalysis} />
+                  <BatchAnalyzer />
+                </div>
               </TabsContent>
             </Tabs>
             </CardContent>
